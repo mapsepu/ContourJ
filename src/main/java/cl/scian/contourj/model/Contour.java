@@ -118,11 +118,38 @@ public final class Contour implements Comparable<Contour> {
         this.color = color;
     }
 
+    /**
+     * Returns the contour as a closed polygon ROI, so that Fiji can measure its area,
+     * perimeter and shape descriptors. (It was a FREELINE before: an open line whose
+     * "Area" is the number of line pixels and whose length misses the closing segment.)
+     * A last point identical to the first one is dropped, since the polygon closes itself.
+     */
     public Roi getRoi() {
         float[] x = this.getXAsFloat();
         float[] y = this.getYAsFloat();
-        FloatPolygon positions = new FloatPolygon(x, y, this.getSize());
-        return new PolygonRoi(positions, Roi.FREELINE);
+        int n = this.getSize();
+        if (n > 1 && x[0] == x[n - 1] && y[0] == y[n - 1]) {
+            n--;
+        }
+        FloatPolygon positions = new FloatPolygon(x, y, n);
+        return new PolygonRoi(positions, Roi.POLYGON);
+    }
+
+    /**
+     * Perimeter of the closed contour: like {@link #getPerimeter()} plus the segment
+     * from the last point back to the first one.
+     */
+    public double getClosedPerimeter() {
+        double perimeter = this.getPerimeter();
+        if (this.getSize() > 1) {
+            RealPoint first = this.points.get(0);
+            RealPoint last = this.points.get(this.getSize() - 1);
+            perimeter += Math.hypot(
+                    first.getDoublePosition(xIndex) - last.getDoublePosition(xIndex),
+                    first.getDoublePosition(yIndex) - last.getDoublePosition(yIndex)
+            );
+        }
+        return perimeter;
     }
 
     public double getPerimeter() {
