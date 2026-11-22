@@ -7,6 +7,7 @@ import cl.scian.contourj.model.helpers.MatrixOps;
 import cl.scian.contourj.model.helpers.Sampling;
 import cl.scian.contourj.model.helpers.interpolation.BilinearInterpolation;
 
+import ij.IJ;
 import ij.ImagePlus;
 import net.imagej.Dataset;
 import net.imagej.display.ImageDisplay;
@@ -17,7 +18,9 @@ import org.scijava.log.LogService;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.stream.IntStream;
 
@@ -42,6 +45,9 @@ public class ActiveContours extends AbstractContourAdjuster {
     private Contours adjustedContours;
 
     private HashMap<Integer, HashMap<Integer, VectorFlow>> vectorFlowMap = new HashMap<>();
+
+    // Summary of the last run, written to the ImageJ Log window
+    private final StringBuilder runReport = new StringBuilder();
 
     public ActiveContours() {
         super();
@@ -172,6 +178,11 @@ public class ActiveContours extends AbstractContourAdjuster {
 
         double[][] invertedAbcMatrix = MatrixOps.invertMatrix(MatrixOps.makeABCMatrix(a, b, c));
 
+        double initialPerimeter = sampledContour.getClosedPerimeter();
+        int iterationsDone = 0;
+        double variation = Double.NaN;
+        boolean converged = false;
+
         for (int i = 1; i <= this.iterations(); i++) {
 
             // Set external forces to zero if using internal forces only
@@ -203,7 +214,7 @@ public class ActiveContours extends AbstractContourAdjuster {
                             .toArray()
             );
 
-            double variation = this.convergenceMetric().calculate(
+            variation = this.convergenceMetric().calculate(
                     sampledContour,
                     new Contour(adjustedX, adjustedY, sampledContour.getFrame(), sampledContour.getDepth())
             );
@@ -212,9 +223,21 @@ public class ActiveContours extends AbstractContourAdjuster {
 
             log.debug("Iter: " + i + " | Var: " + variation);
 
-            if (variation < convergenceThreshold()) return sampledContour;
+            iterationsDone = i;
+
+            if (variation < convergenceThreshold()) {
+                converged = true;
+                break;
+            }
 
         }
+
+        runReport.append(String.format(java.util.Locale.US,
+                "  points: %d | iterations: %d of %d | stop: %s | last variation: %.5f | perimeter: %.3f -> %.3f%n",
+                pointsToIterate, iterationsDone, this.iterations(),
+                converged ? "converged (variation < threshold)" : "maximum iterations reached",
+                variation, initialPerimeter, sampledContour.getClosedPerimeter()));
+
         return sampledContour;
     }
 
@@ -228,16 +251,34 @@ public class ActiveContours extends AbstractContourAdjuster {
         // reopened. It is now cached only within a run (shared by contours on the same plane).
         this.vectorFlowMap.clear();
 
+        runReport.setLength(0);
+        runReport.append("ContourJ run, ").append(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())).append("\n");
+        boolean internalOnly = parameters().getUseInternalForcesOnly();
+        String imageTitle = "-";
+        if (!internalOnly) {
+            ImagePlus imp = this.getImagePlus();
+            if (imp != null) imageTitle = imp.getTitle();
+        }
+        runReport.append("  image: ").append(imageTitle)
+                .append(" | forces: ").append(internalOnly ? "internal only" : "internal and external").append("\n");
+        runReport.append(String.format(java.util.Locale.US,
+                "  parameters: elasticity=%s rigidity=%s viscosity=%s edge pull=%s smoothness=%s "
+                        + "field iterations=%d max iterations=%d metric=%s threshold=%s%n",
+                alpha(), beta(), gamma(), kappa(), parameters().getMu(),
+                parameters().getGVFIterations(), iterations(), convergenceMetric().getName(), convergenceThreshold()));
+
         for (int i = 0; i < initialContours.size(); i++) {
 
             Contour currentContour = initialContours.get(i).copy();
 
-            System.out.println("Active contours - adjusting ROI " + (i + 1) + " (ID:" + currentContour.getId() + ") " + "of " + initialContours.size());
+            runReport.append("ROI ").append(i + 1).append(" of ").append(initialContours.size()).append("\n");
 
             Contour adjustedContour = adjust(currentContour);
 
             this.adjustedContours.add(adjustedContour);
         }
+
+        IJ.log(runReport.toString());
     }
 
     @Override
