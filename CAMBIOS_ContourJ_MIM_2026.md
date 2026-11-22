@@ -22,8 +22,10 @@ ejecutando las clases de ambas versiones sobre el mismo caso de prueba, 9 combin
 | E8 | El campo vectorial quedaba en memoria toda la vida de la ventana: cambiar imagen, μ o iteraciones del campo no tenía efecto hasta reabrir el plugin | El campo se recalcula en cada Run |
 | E9 | Re-muestrear una ROI de entrada ya cerrada (primer punto repetido al final) lanzaba `ArrayIndexOutOfBoundsException` | El contador del punto de cierre se incrementa solo si se agrega |
 | E10 | Seis opciones de salida y la entrada "Mask" se mostraban pero no hacían nada | Quedan desactivadas hasta implementarse |
+| E17 | Cada ventana de ContourJ cerrada seguía recibiendo los eventos de imágenes (después de abrir el plugin tres veces, cada evento se procesaba tres veces) | La ventana deja de escuchar al cerrarse |
+| E18 | Al cerrar una imagen podía saltar un `NullPointerException` no capturado y abrirse la consola de Fiji; las listas de imágenes se rehacían en cada evento y llenaban la consola de mensajes | El error se captura y la lista se refresca en el siguiente evento; las listas se rehacen solo si cambian; los mensajes de rutina pasan a nivel de depuración |
 
-El título de la ventana muestra la versión del plugin.
+El título de la ventana muestra la versión del plugin. Nuevo botón **"Restore default parameters"**, bajo Save/Load parameters.
 
 ## Pendiente (cambia los resultados; no incluido)
 
