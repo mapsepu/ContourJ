@@ -285,6 +285,14 @@ public class MainController implements Initializable {
             // Run the adjustment
             contourWorkflow.initAdjustment();
             
+        } catch (Exception e) {
+            // Without this, an error during the adjustment was lost: the window just went
+            // back to "Ready" and no contour was added.
+            log.error("Error during contour adjustment", e);
+            ij.IJ.log("ContourJ: the adjustment failed: " + e);
+            showAlert("Adjustment failed",
+                "The contour adjustment stopped with an error:\n" + e
+                + "\n\nSee the Log and Console windows for details.");
         } finally {
             // Re-enable updates when done (even if an exception occurs)
             imageDisplayManager.setUpdatesEnabled(true);
