@@ -36,6 +36,9 @@ public class ContourWorkflow implements Initializable {
 
     private Contours initialContours;
     private Contours adjustedContours;
+
+    // Names of the ROIs the initial contours were read from (same order)
+    private String[] initialRoiNames = new String[0];
     
     // Flag to control whether original annotations should be preserved
     private boolean preserveOriginalAnnotations = false;
@@ -86,9 +89,11 @@ public class ContourWorkflow implements Initializable {
 
         Roi[] rois = rm.getRoisAsArray();
         this.initialContours = new Contours(rois.length);
+        this.initialRoiNames = new String[rois.length];
 
         for (int i = 0; i < rois.length; i++) {
             Roi roi = rois[i];
+            this.initialRoiNames[i] = roi.getName();
             float[] x = roi.getFloatPolygon().xpoints;
             float[] y = roi.getFloatPolygon().ypoints;
             this.initialContours.add(new Contour(x, y, roi.getTPosition(), roi.getZPosition()));
@@ -120,10 +125,21 @@ public class ContourWorkflow implements Initializable {
         }
         
         // Add all contours at once to minimize events
+        int index = 0;
         for (Contour contour : contours) {
             Roi contourAsRoi = contour.getRoi();
             contourAsRoi.setStrokeColor(contour.getColor()); // TODO: Check better way to handle color
+
+            // Give each result its own name (it used to get the same position-based name
+            // as its initial ROI) and keep the slice/frame of the initial ROI.
+            String initialName = index < initialRoiNames.length ? initialRoiNames[index] : null;
+            contourAsRoi.setName(initialName != null ? initialName + "-ContourJ" : "ContourJ-" + (index + 1));
+            if (contour.getDepth() > 0 || contour.getFrame() > 0) {
+                contourAsRoi.setPosition(0, contour.getDepth(), contour.getFrame());
+            }
+
             rm.addRoi(contourAsRoi);
+            index++;
         }
     }
 
