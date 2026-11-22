@@ -10,7 +10,9 @@ import javafx.util.converter.DoubleStringConverter;
 import org.scijava.log.LogService;
 
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.text.ParseException;
+import java.util.Locale;
 
 public class ParameterManager {
     private final LogService log;
@@ -74,10 +76,13 @@ public class ParameterManager {
         SpinnerValueFactory.DoubleSpinnerValueFactory factory = new SpinnerValueFactory.DoubleSpinnerValueFactory(min, max, initialValue, step);
 
         factory.setConverter(new DoubleStringConverter() {
-            private final DecimalFormat format = new DecimalFormat("0.0###") {
+            // Always use '.' as decimal separator: the text filter below only accepts
+            // a dot, so a locale that formats with ',' made the field impossible to edit.
+            private final DecimalFormat format = new DecimalFormat("0.0###", DecimalFormatSymbols.getInstance(Locale.US)) {
                 {
                     setMaximumFractionDigits(4);
                     setMinimumIntegerDigits(1);
+                    setGroupingUsed(false);
                 }
             };
 
