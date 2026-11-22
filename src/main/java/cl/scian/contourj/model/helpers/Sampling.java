@@ -25,8 +25,10 @@ public class Sampling { // TODO: Check how arc sample is closing curves
                 xInputCoordinates[xInputCoordinates.length - 1] = xInputCoordinates[0];
                 yInputCoordinates = Arrays.copyOf(yInputCoordinates, yInputCoordinates.length + 1);
                 yInputCoordinates[yInputCoordinates.length - 1] = yInputCoordinates[0];
+                // Count the closing point only when it was actually added. Counting it
+                // also for an already closed input read past the end of the arrays.
+                numPointsCurve++;
             }
-            numPointsCurve++;
         } else {
             numPoints--;
         }
