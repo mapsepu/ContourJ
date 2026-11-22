@@ -71,7 +71,7 @@ public class ContourJPlugin implements Command {
 
             // Launch JavaFX interface
             MainAppFrame app = new MainAppFrame(ij, activeContours);
-            app.setTitle(PLUGIN_NAME);// + " version " + VERSION);
+            app.setTitle(PLUGIN_NAME + " " + VERSION);
             app.initialize();
 
         } catch (Exception e) {

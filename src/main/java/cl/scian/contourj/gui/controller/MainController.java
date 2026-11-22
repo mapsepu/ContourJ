@@ -89,6 +89,8 @@ public class MainController implements Initializable {
     @FXML
     private RadioButton roiRadio;
     @FXML
+    private RadioButton maskRadio;
+    @FXML
     private Spinner<Double> alphaSpinner;
     @FXML
     private Spinner<Double> betaSpinner;
@@ -161,10 +163,39 @@ public class MainController implements Initializable {
         setupMaskSelector();
         setupParameters();
         setupUIBindings();
+        disableUnimplementedOptions();
         
         // Force an update of the image displays after setting up
         log.info("Forcing initial update of image displays");
         imageDisplayManager.updateAllComboBoxes();
+    }
+
+    /**
+     * Some options are shown in the window but are not implemented yet: changing them had
+     * no effect, which is misleading. They are disabled (and left at the value that matches
+     * what the plugin actually does) until they are implemented.
+     */
+    private void disableUnimplementedOptions() {
+        // The input image is never modified, and results are always added to the ROI Manager
+        preserveOriginalInputCheckbox.setSelected(true);
+        addToRoiManagerCheckbox.setSelected(true);
+        // No overlay image, no exporters, no mask input yet
+        imageWithOverlayCheckbox.setSelected(false);
+        exportRoiZipCheckbox.setSelected(false);
+        exportCsvCheckbox.setSelected(false);
+        exportTxtCheckbox.setSelected(false);
+        roiRadio.setSelected(true);
+
+        CheckBox[] unimplemented = {
+            preserveOriginalInputCheckbox, addToRoiManagerCheckbox, imageWithOverlayCheckbox,
+            exportRoiZipCheckbox, exportCsvCheckbox, exportTxtCheckbox
+        };
+        for (CheckBox checkBox : unimplemented) {
+            checkBox.setDisable(true);
+        }
+        if (maskRadio != null) {
+            maskRadio.setDisable(true);
+        }
     }
 
     private void setupImageSelector() {
