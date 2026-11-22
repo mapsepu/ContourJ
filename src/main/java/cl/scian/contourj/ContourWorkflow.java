@@ -133,12 +133,16 @@ public class ContourWorkflow implements Initializable {
             // Give each result its own name (it used to get the same position-based name
             // as its initial ROI) and keep the slice/frame of the initial ROI.
             String initialName = index < initialRoiNames.length ? initialRoiNames[index] : null;
-            contourAsRoi.setName(initialName != null ? initialName + "-ContourJ" : "ContourJ-" + (index + 1));
+            String resultName = initialName != null ? initialName + "-ContourJ" : "ContourJ-" + (index + 1);
+            contourAsRoi.setName(resultName);
             if (contour.getDepth() > 0 || contour.getFrame() > 0) {
                 contourAsRoi.setPosition(0, contour.getDepth(), contour.getFrame());
             }
 
             rm.addRoi(contourAsRoi);
+            // RoiManager.addRoi() labels the new entry from its position and ignores the
+            // ROI name, so the name is set again on the added entry.
+            rm.rename(rm.getCount() - 1, resultName);
             index++;
         }
     }
