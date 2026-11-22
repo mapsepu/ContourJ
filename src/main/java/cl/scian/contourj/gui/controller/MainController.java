@@ -407,6 +407,15 @@ public class MainController implements Initializable {
     }
 
     @FXML
+    public void resetParameters(ActionEvent actionEvent) {
+        contourWorkflow.parameters().resetToDefaults();
+        // The metric selector is not bound to the parameters: refresh it by hand
+        convergenceMetricSelector.getSelectionModel().select(
+                contourWorkflow.parameters().getActiveConvergenceMetric());
+        log.info("Parameters restored to their default values");
+    }
+
+    @FXML
     public void loadParameters(ActionEvent actionEvent) {
         FileChooser fileChooser = new FileChooser();
         FileChooser.ExtensionFilter fileExtension = new FileChooser.ExtensionFilter("Select the parameters file (.toml)", "*.toml");

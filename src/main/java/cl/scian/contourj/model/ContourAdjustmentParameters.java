@@ -179,6 +179,24 @@ public class ContourAdjustmentParameters { // TODO: Add missing ASL
      * with Fiji, so "Load parameters" failed with NoClassDefFoundError.
      * Unknown keys are ignored; missing keys keep their current value.
      */
+    /**
+     * Restores the default values of all adjustment parameters and the default
+     * convergence metric. The "internal forces only" option is not changed: it is
+     * controlled by the forces choice in the window.
+     */
+    public void resetToDefaults() {
+        ContourAdjustmentParameters defaults = new ContourAdjustmentParameters();
+        this.alpha.set(defaults.getAlpha());
+        this.beta.set(defaults.getBeta());
+        this.gamma.set(defaults.getGamma());
+        this.kappa.set(defaults.getKappa());
+        this.mu.set(defaults.getMu());
+        this.convergenceThreshold.set(defaults.getConvergenceThreshold());
+        this.iterations.set(defaults.getIterations());
+        this.gvfIterations.set(defaults.getGVFIterations());
+        this.getConvergenceMetrics().setActiveMetric(0);
+    }
+
     public void setFromFile(File parametersFile) throws IOException {
         Map<String, String> values = new HashMap<String, String>();
         for (String rawLine : Files.readAllLines(parametersFile.toPath(), StandardCharsets.UTF_8)) {

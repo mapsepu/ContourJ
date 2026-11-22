@@ -1806,6 +1806,14 @@
                         </tooltip>
                      </Label>
                   </HBox>
+                  <Button fx:id="resetParametersButton" alignment="CENTER" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#resetParameters" style="-fx-border-width: 1.4; -fx-border-radius: 3; -fx-border-color: #7a7a7a;" text="Restore default parameters" VBox.vgrow="NEVER">
+                     <cursor>
+                        <Cursor fx:constant="HAND" />
+                     </cursor>
+                     <font>
+                        <Font name="System Bold" size="11.0" />
+                     </font>
+                  </Button>
                </VBox>
             </children>
          </HBox>
