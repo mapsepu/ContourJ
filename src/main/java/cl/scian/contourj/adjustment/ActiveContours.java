@@ -222,6 +222,12 @@ public class ActiveContours extends AbstractContourAdjuster {
 
         this.adjustedContours = new Contours(this.initialContours.size());
 
+        // The vector field depends on the image, mu and the number of field iterations.
+        // It used to be cached for the whole life of the window and was never recomputed,
+        // so a change of image or of those parameters had no effect until the plugin was
+        // reopened. It is now cached only within a run (shared by contours on the same plane).
+        this.vectorFlowMap.clear();
+
         for (int i = 0; i < initialContours.size(); i++) {
 
             Contour currentContour = initialContours.get(i).copy();
