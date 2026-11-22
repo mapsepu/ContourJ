@@ -19,8 +19,6 @@ import org.scijava.Context;
 import org.scijava.event.EventService;
 import org.scijava.log.LogService;
 import org.scijava.plugin.Parameter;
-// import org.tomlj.Toml;
-// import org.tomlj.TomlParseResult;
 
 import ij.plugin.frame.RoiManager;
 
@@ -364,10 +362,14 @@ public class MainController implements Initializable {
         if (parametersFile != null) {
             try {
                 contourWorkflow.setParametersFromFile(parametersFile);
+                // The metric selector is not bound to the parameters: refresh it by hand
+                convergenceMetricSelector.getSelectionModel().select(
+                        contourWorkflow.parameters().getActiveConvergenceMetric());
                 log.info("Parameters successfully loaded from: " + parametersFile.getAbsolutePath());
             } catch (IOException e) {
                 log.error("Error loading parameters: " + e.getMessage());
                 log.warn(e);
+                showAlert("Parameters not loaded", "The parameters file could not be read:\n" + e.getMessage());
             }
         }
     }

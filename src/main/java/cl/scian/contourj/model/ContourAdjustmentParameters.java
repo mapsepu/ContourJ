@@ -3,11 +3,11 @@ package cl.scian.contourj.model;
 import cl.scian.contourj.model.helpers.convergence.metrics.ConvergenceMetric;
 import cl.scian.contourj.model.helpers.convergence.metrics.ConvergenceMetrics;
 import javafx.beans.property.*;
-import org.tomlj.Toml;
-import org.tomlj.TomlParseResult;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -172,23 +172,54 @@ public class ContourAdjustmentParameters { // TODO: Add missing ASL
         this.convergenceThreshold.set(value);
     }
 
+    /**
+     * Reads a parameters file written by {@link #saveToFile(File)}.
+     * The format is a flat list of "Name" = value lines (a subset of TOML). It is parsed
+     * here directly: the TOML library used before was not shipped with the plugin nor
+     * with Fiji, so "Load parameters" failed with NoClassDefFoundError.
+     * Unknown keys are ignored; missing keys keep their current value.
+     */
     public void setFromFile(File parametersFile) throws IOException {
-        TomlParseResult result = Toml.parse(parametersFile.toPath());
-
-        mapDouble(result, "Elasticity", this.alpha);
-        mapDouble(result, "Rigidity", this.beta);
-        mapDouble(result, "Viscosity", this.gamma);
-        mapDouble(result, "Edge Pull Strength", this.kappa);
-        mapDouble(result, "Smoothness Control", this.mu);
-        mapDouble(result, "Convergence Threshold", this.convergenceThreshold);
-
-        mapInteger(result, "Vector Field Iterations", this.gvfIterations);
-        mapInteger(result, "Maximum Iterations", this.iterations);
-
-        String metricName = result.getString("Convergence Metric");
-        if (metricName != null) {
-            this.getConvergenceMetrics().setActiveMetric(metricName); // TODO: FIX!!!
+        Map<String, String> values = new HashMap<String, String>();
+        for (String rawLine : Files.readAllLines(parametersFile.toPath(), StandardCharsets.UTF_8)) {
+            String line = rawLine.trim();
+            if (line.isEmpty() || line.startsWith("#") || line.startsWith("[")) continue;
+            int separator = line.indexOf('=');
+            if (separator < 0) continue;
+            String key = unquote(line.substring(0, separator).trim());
+            String value = line.substring(separator + 1).trim();
+            if (!value.startsWith("\"")) {
+                int comment = value.indexOf('#');
+                if (comment >= 0) value = value.substring(0, comment).trim();
+            }
+            values.put(key, unquote(value));
         }
+
+        try {
+            mapDouble(values, "Elasticity", this.alpha);
+            mapDouble(values, "Rigidity", this.beta);
+            mapDouble(values, "Viscosity", this.gamma);
+            mapDouble(values, "Edge Pull Strength", this.kappa);
+            mapDouble(values, "Smoothness Control", this.mu);
+            mapDouble(values, "Convergence Threshold", this.convergenceThreshold);
+
+            mapInteger(values, "Vector Field Iterations", this.gvfIterations);
+            mapInteger(values, "Maximum Iterations", this.iterations);
+        } catch (NumberFormatException e) {
+            throw new IOException("Invalid number in parameters file: " + e.getMessage(), e);
+        }
+
+        String metricName = values.get("Convergence Metric");
+        if (metricName != null) {
+            this.getConvergenceMetrics().setActiveMetric(metricName);
+        }
+    }
+
+    private static String unquote(String text) {
+        if (text.length() >= 2 && text.startsWith("\"") && text.endsWith("\"")) {
+            return text.substring(1, text.length() - 1);
+        }
+        return text;
     }
 
     public void saveToFile(File parametersFile) throws IOException {
@@ -209,17 +240,17 @@ public class ContourAdjustmentParameters { // TODO: Add missing ASL
         }
     }
 
-    private void mapDouble(TomlParseResult toml, String key, DoubleProperty property) {
-        Double value = toml.getDouble(key);
+    private void mapDouble(Map<String, String> values, String key, DoubleProperty property) {
+        String value = values.get(key);
         if (value != null) {
-            property.set(value);
+            property.set(Double.parseDouble(value));
         }
     }
 
-    private void mapInteger(TomlParseResult toml, String key, IntegerProperty property) {
-        Long value = toml.getLong(key);
+    private void mapInteger(Map<String, String> values, String key, IntegerProperty property) {
+        String value = values.get(key);
         if (value != null) {
-            property.set(value.intValue());
+            property.set((int) Math.round(Double.parseDouble(value)));
         }
     }
 
