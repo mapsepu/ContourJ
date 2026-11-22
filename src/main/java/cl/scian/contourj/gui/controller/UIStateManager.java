@@ -28,7 +28,6 @@ public class UIStateManager {
     }
     
     public void updateInputName(String name) {
-        System.out.println("input name: " + name);
         // Always use the placeholder text when name is null or empty
         if (name == null || name.isEmpty()) {
             inputNameProperty.set("<no-image-selected>");
@@ -38,7 +37,6 @@ public class UIStateManager {
     }
     
     public void updateMaskName(String name) {
-        System.out.println("mask name: " + name);
         // Always use the placeholder text when name is null or empty
         if (name == null || name.isEmpty()) {
             maskNameProperty.set("<no-mask-selected>");

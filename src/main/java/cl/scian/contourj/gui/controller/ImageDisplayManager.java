@@ -40,6 +40,9 @@ public class ImageDisplayManager implements ImageListener {
     // Flag to control whether updates are processed
     private boolean updatesEnabled = true;
 
+    // Set when the ContourJ window is closed: no more updates are processed
+    private volatile boolean disposed = false;
+
     public ImageDisplayManager(ImageDisplayService imds, ComboBox<ImageDisplay> sourceComboBox, ComboBox<ImageDisplay> maskComboBox) {
         this.imds = imds;
         this.sourceComboBox = sourceComboBox;
@@ -52,20 +55,34 @@ public class ImageDisplayManager implements ImageListener {
      */
     public void initialize() {
         if (log != null) {
-            log.info("Initializing ImageDisplayManager");
+            log.debug("Initializing ImageDisplayManager");
         }
         
         // Register as an ImageJ1 listener to get notified of legacy image changes
         ij.ImagePlus.addImageListener(this);
         
         if (log != null) {
-            log.info("Registered as ImageJ1 listener");
+            log.debug("Registered as ImageJ1 listener");
         }
     }
 
     /**
      * Enable or disable updates to avoid unnecessary refreshes during processing
      */
+    /**
+     * Stops listening to image events. Must be called when the ContourJ window is closed:
+     * otherwise every closed window kept reacting to image events (and refreshing its
+     * hidden lists) for the rest of the Fiji session.
+     */
+    public void dispose() {
+        disposed = true;
+        updatesEnabled = false;
+        ij.ImagePlus.removeImageListener(this);
+        if (log != null) {
+            log.debug("ImageDisplayManager disposed");
+        }
+    }
+
     public void setUpdatesEnabled(boolean enabled) {
         this.updatesEnabled = enabled;
         if (enabled) {
@@ -78,15 +95,27 @@ public class ImageDisplayManager implements ImageListener {
      * Updates the ComboBox with current image displays
      */
     public void updateImageDisplaysList() {
-        // Get available image displays
-        ObservableList<ImageDisplay> displays = FXCollections.observableArrayList(imds.getImageDisplays());
+        if (disposed) return;
+
+        // Get available image displays. While an image is being closed, ImageJ may fail
+        // to describe it (NullPointerException inside the legacy layer); the lists are
+        // simply refreshed again on the next image event.
+        ObservableList<ImageDisplay> displays;
+        try {
+            displays = FXCollections.observableArrayList(imds.getImageDisplays());
+        } catch (RuntimeException e) {
+            if (log != null) {
+                log.debug("Image list not refreshed (an image is probably being closed): " + e);
+            }
+            return;
+        }
         
         // Set up placeholders
         setupComboBox(sourceComboBox, "no-image-selected");
         setupComboBox(maskComboBox, "no-mask-selected");
         
         if (log != null) {
-            log.info("Updating displays. Found " + displays.size() + " displays");
+            log.debug("Updating displays. Found " + displays.size() + " displays");
         }
         
         // Store the currently selected item to restore it after update
@@ -95,6 +124,14 @@ public class ImageDisplayManager implements ImageListener {
         
         // Update the ComboBox items
         Platform.runLater(() -> {
+            if (disposed) return;
+
+            // Nothing to do if the list did not change. Rebuilding it on every event
+            // cleared the selection and selected the image again, many times per event.
+            if (displays.equals(sourceComboBox.getItems()) && displays.equals(maskComboBox.getItems())) {
+                return;
+            }
+
             // Clear and set new items
             sourceComboBox.getItems().clear();
             sourceComboBox.setItems(displays);
@@ -106,7 +143,10 @@ public class ImageDisplayManager implements ImageListener {
                 sourceComboBox.getSelectionModel().clearSelection();
                 maskComboBox.getSelectionModel().clearSelection();
             } else {
-                if (selectedSource != null) {
+                if (selectedSource != null && displays.contains(selectedSource)) {
+                    // Keep exactly the same image when it is still open
+                    sourceComboBox.getSelectionModel().select(selectedSource);
+                } else if (selectedSource != null) {
                     // Try to find and reselect the previously selected item
                     for (ImageDisplay display : displays) {
                         if (display.getName().equals(selectedSource.getName())) {
@@ -124,7 +164,10 @@ public class ImageDisplayManager implements ImageListener {
                         }
                     }
                 }
-                if (selectedMask != null) {
+                if (selectedMask != null && displays.contains(selectedMask)) {
+                    // Keep exactly the same image when it is still open
+                    maskComboBox.getSelectionModel().select(selectedMask);
+                } else if (selectedMask != null) {
                     // Try to find and reselect the previously selected item
                     for (ImageDisplay display : displays) {
                         if (display.getName().equals(selectedMask.getName())) {
@@ -225,9 +268,9 @@ public class ImageDisplayManager implements ImageListener {
      */
     public void updateAllComboBoxes() {
         // Skip updates if disabled
-        if (!updatesEnabled) {
+        if (!updatesEnabled || disposed) {
             if (log != null) {
-                log.info("Updates are disabled, skipping ComboBox refresh");
+                log.debug("Updates are disabled, skipping ComboBox refresh");
             }
             return;
         }
@@ -246,7 +289,7 @@ public class ImageDisplayManager implements ImageListener {
         if (!updatesEnabled) return;
         
         if (log != null) {
-            log.info("ImageJ1 imageOpened event: " + imp.getTitle());
+            log.debug("ImageJ1 imageOpened event: " + imp.getTitle());
         }
         updateAllComboBoxes();
     }
@@ -260,7 +303,7 @@ public class ImageDisplayManager implements ImageListener {
         if (!updatesEnabled) return;
         
         if (log != null) {
-            log.info("ImageJ1 imageClosed event: " + imp.getTitle());
+            log.debug("ImageJ1 imageClosed event: " + imp.getTitle());
         }
         updateAllComboBoxes();
     }
@@ -274,7 +317,7 @@ public class ImageDisplayManager implements ImageListener {
         if (!updatesEnabled) return;
         
         if (log != null) {
-            log.info("ImageJ1 imageUpdated event: " + imp.getTitle());
+            log.debug("ImageJ1 imageUpdated event: " + imp.getTitle());
         }
         updateAllComboBoxes();
     }
@@ -287,7 +330,7 @@ public class ImageDisplayManager implements ImageListener {
         if (!updatesEnabled) return;
         
         if (log != null) {
-            log.info("Display created event received");
+            log.debug("Display created event received");
         }
         updateAllComboBoxes();
     }
@@ -300,7 +343,7 @@ public class ImageDisplayManager implements ImageListener {
         if (!updatesEnabled) return;
         
         if (log != null) {
-            log.info("Display deleted event received");
+            log.debug("Display deleted event received");
         }
         updateAllComboBoxes();
     }
@@ -313,7 +356,7 @@ public class ImageDisplayManager implements ImageListener {
         if (!updatesEnabled) return;
         
         if (log != null) {
-            log.info("Display updated event received");
+            log.debug("Display updated event received");
         }
         updateAllComboBoxes();
     }
@@ -326,7 +369,7 @@ public class ImageDisplayManager implements ImageListener {
         if (!updatesEnabled) return;
         
         if (log != null) {
-            log.info("Display event received: " + event.getClass().getSimpleName());
+            log.debug("Display event received: " + event.getClass().getSimpleName());
         }
         updateAllComboBoxes();
     }

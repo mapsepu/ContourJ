@@ -137,6 +137,7 @@ public class MainController implements Initializable {
 
     private final ContourWorkflow contourWorkflow;
     private ImageDisplayManager imageDisplayManager;
+    private java.util.List<org.scijava.event.EventSubscriber<?>> imageDisplaySubscribers;
     private final ParameterManager parameterManager;
     private final UIStateManager uiStateManager;
 
@@ -156,7 +157,7 @@ public class MainController implements Initializable {
         // Create the image display manager now that the UI components exist
         this.imageDisplayManager = new ImageDisplayManager(imds, inputSourceSelector, maskSelector);
         context.inject(this.imageDisplayManager);
-        eventService.subscribe(this.imageDisplayManager);
+        this.imageDisplaySubscribers = eventService.subscribe(this.imageDisplayManager);
         this.imageDisplayManager.initialize();
         
         setupImageSelector();
@@ -166,7 +167,7 @@ public class MainController implements Initializable {
         disableUnimplementedOptions();
         
         // Force an update of the image displays after setting up
-        log.info("Forcing initial update of image displays");
+        log.debug("Forcing initial update of image displays");
         imageDisplayManager.updateAllComboBoxes();
     }
 
@@ -198,10 +199,23 @@ public class MainController implements Initializable {
         }
     }
 
+    /**
+     * Releases the image listeners. Called when the ContourJ window is closed.
+     */
+    public void dispose() {
+        if (imageDisplayManager != null) {
+            imageDisplayManager.dispose();
+        }
+        if (imageDisplaySubscribers != null) {
+            eventService.unsubscribe(imageDisplaySubscribers);
+            imageDisplaySubscribers = null;
+        }
+    }
+
     private void setupImageSelector() {
         inputSourceSelector.getSelectionModel().selectedItemProperty().addListener(
             (obs, oldVal, newVal) -> {
-                log.info("Image selection changed: " + (newVal != null ? newVal.getName() : "null"));
+                log.debug("Image selection changed: " + (newVal != null ? newVal.getName() : "null"));
                 if (newVal != null) {
                     contourWorkflow.setSourceDisplay(newVal);
                     imageDisplayManager.updateDatasetInfoDisplay(newVal, 
@@ -234,7 +248,7 @@ public class MainController implements Initializable {
     private void setupMaskSelector() {
         maskSelector.getSelectionModel().selectedItemProperty().addListener(
             (obs, oldVal, newVal) -> {
-                log.info("Mask selection changed: " + (newVal != null ? newVal.getName() : "null"));
+                log.debug("Mask selection changed: " + (newVal != null ? newVal.getName() : "null"));
                 if (newVal != null) {
                     imageDisplayManager.updateDatasetInfoDisplay(newVal,
                         maskTitle, maskWidth, maskHeight,

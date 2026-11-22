@@ -37,6 +37,8 @@ public class MainAppFrame extends JFrame {
 
     private JFXPanel fxPanel;
 
+    private MainController mainController;
+
     private final ContourWorkflow activeContours;
     private final ImageDisplay imd;
 
@@ -51,6 +53,11 @@ public class MainAppFrame extends JFrame {
             @Override
             public void windowClosing(WindowEvent windowEvent) {
                 log.debug("Quitting ContourJ... Bye bye !");
+                // Stop listening to image events (each closed window used to keep listening)
+                final MainController controller = mainController;
+                if (controller != null) {
+                    Platform.runLater(controller::dispose);
+                }
                 SwingUtilities.invokeLater(() -> {
                     setVisible(true);
                     dispose();
@@ -84,7 +91,7 @@ public class MainAppFrame extends JFrame {
             FXMLLoader loader = new FXMLLoader(MainAppFrame.class.getResource("/active-contours.fxml"));
 
             // Create and set the main controller
-            MainController mainController = new MainController(this.context, this.activeContours);
+            this.mainController = new MainController(this.context, this.activeContours);
             loader.setController(mainController);
 
             // Show the scene containing the root layout
