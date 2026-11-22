@@ -23,6 +23,19 @@ public class ContourAdjustmentParameters { // TODO: Add missing ASL
     private final IntegerProperty iterations = new SimpleIntegerProperty(100);
     private final IntegerProperty gvfIterations = new SimpleIntegerProperty(20);
 
+    // Object views of the numeric properties, used by the GUI bindings.
+    // asObject() returns a new wrapper whose binding to the numeric property is weak:
+    // if nobody keeps a reference to the wrapper it is garbage collected and the GUI
+    // silently stops updating the parameters. Keeping them as fields prevents that.
+    private final ObjectProperty<Double> alphaObject = alpha.asObject();
+    private final ObjectProperty<Double> betaObject = beta.asObject();
+    private final ObjectProperty<Double> gammaObject = gamma.asObject();
+    private final ObjectProperty<Double> kappaObject = kappa.asObject();
+    private final ObjectProperty<Double> muObject = mu.asObject();
+    private final ObjectProperty<Double> convergenceThresholdObject = convergenceThreshold.asObject();
+    private final ObjectProperty<Integer> iterationsObject = iterations.asObject();
+    private final ObjectProperty<Integer> gvfIterationsObject = gvfIterations.asObject();
+
     // Flag to indicate if only internal forces should be used (no GVF/GGVF calculation)
     private final BooleanProperty useInternalForcesOnly = new SimpleBooleanProperty(false);
 
@@ -48,7 +61,7 @@ public class ContourAdjustmentParameters { // TODO: Add missing ASL
         return this.alpha.get();
     }
     public Property<Double> alphaProperty() {
-        return this.alpha.asObject();
+        return this.alphaObject;
     }
 
     public void setAlpha(double value) {
@@ -59,7 +72,7 @@ public class ContourAdjustmentParameters { // TODO: Add missing ASL
         return this.beta.get();
     }
     public Property<Double> betaProperty() {
-        return this.beta.asObject();
+        return this.betaObject;
     }
 
     public void setBeta(double value) {
@@ -70,7 +83,7 @@ public class ContourAdjustmentParameters { // TODO: Add missing ASL
         return this.gamma.get();
     }
     public Property<Double> gammaProperty() {
-        return this.gamma.asObject();
+        return this.gammaObject;
     }
 
     public void setGamma(double value) {
@@ -81,7 +94,7 @@ public class ContourAdjustmentParameters { // TODO: Add missing ASL
         return this.kappa.get();
     }
     public Property<Double> kappaProperty() {
-        return this.kappa.asObject();
+        return this.kappaObject;
     }
 
     public void setKappa(double value) {
@@ -92,7 +105,7 @@ public class ContourAdjustmentParameters { // TODO: Add missing ASL
         return this.mu.get();
     }
     public Property<Double> muProperty() {
-        return this.mu.asObject();
+        return this.muObject;
     }
 
     public void setMu(double value) {
@@ -103,7 +116,7 @@ public class ContourAdjustmentParameters { // TODO: Add missing ASL
         return this.iterations.get();
     }
     public Property<Integer> iterationsProperty() {
-        return this.iterations.asObject();
+        return this.iterationsObject;
     }
 
     public void setIterations(int value) {
@@ -114,7 +127,7 @@ public class ContourAdjustmentParameters { // TODO: Add missing ASL
         return this.gvfIterations.get();
     }
     public Property<Integer> gvfIterationsProperty() {
-        return this.gvfIterations.asObject();
+        return this.gvfIterationsObject;
     }
 
     public void setGVFIterations(int value) {
@@ -152,7 +165,7 @@ public class ContourAdjustmentParameters { // TODO: Add missing ASL
         return this.convergenceThreshold.get();
     }
     public Property<Double> convergenceThresholdProperty() {
-        return this.convergenceThreshold.asObject();
+        return this.convergenceThresholdObject;
     }
 
     public void setConvergenceThreshold(double value) {
